@@ -1,23 +1,24 @@
 import math
 import numpy as np
 import tensorflow as tf
+import tensorflow_compression as tfc
 from keras import layers, Model
 import sionna as sn
 
 # Model
-class jsccEncoder(layers.Layer):
+class jsccEncoder_tfc(layers.Layer):
     def __init__(self, filter, k):
         super().__init__()
         self.k = k
-        self.conv1 = layers.Conv2D(filters=16, kernel_size=5, strides=2, padding='same')
+        self.conv1 = tfc.layers.SignalConv2D(filters=16, kernel_support=5, strides_down=2, padding='same_zeros')
         self.prelu1 = layers.PReLU()
-        self.conv2 = layers.Conv2D(filters=32, kernel_size=5, strides=2, padding='same')
+        self.conv2 = tfc.layers.SignalConv2D(filters=32, kernel_support=5, strides_down=2, padding='same_zeros')
         self.prelu2 = layers.PReLU()
-        self.conv3 = layers.Conv2D(filters=32, kernel_size=5, strides=1, padding='same')
+        self.conv3 = tfc.layers.SignalConv2D(filters=32, kernel_support=5, padding='same_zeros')
         self.prelu3 = layers.PReLU()
-        self.conv4 = layers.Conv2D(filters=32, kernel_size=5, strides=1, padding='same')
+        self.conv4 = tfc.layers.SignalConv2D(filters=32, kernel_support=5, padding='same_zeros')
         self.prelu4 = layers.PReLU()
-        self.conv5 = layers.Conv2D(filters=filter, kernel_size=5, strides=1, padding='same')
+        self.conv5 = tfc.layers.SignalConv2D(filters=filter, kernel_support=5, padding='same_zeros')
         self.prelu5 = layers.PReLU()
         
     def __call__(self, inputs):
@@ -44,19 +45,19 @@ class jsccEncoder(layers.Layer):
     
     
     
-class jsccDecoder(layers.Layer):
+class jsccDecoder_tfc(layers.Layer):
     def __init__(self, filter):
         super().__init__()
         self.filter = int(filter)
-        self.trans_conv5 = layers.Conv2DTranspose(filters=32, kernel_size=5, strides=1, padding='same')
+        self.trans_conv5 = tfc.layers.SignalConv2D(filters=32, kernel_support=5, padding='same_zeros')
         self.prelu5 = layers.PReLU()
-        self.trans_conv4 = layers.Conv2DTranspose(filters=32, kernel_size=5, strides=1, padding='same')
+        self.trans_conv4 = tfc.layers.SignalConv2D(filters=32, kernel_support=5, padding='same_zeros')
         self.prelu4 = layers.PReLU()
-        self.trans_conv3 = layers.Conv2DTranspose(filters=32, kernel_size=5, strides=1, padding='same')
+        self.trans_conv3 = tfc.layers.SignalConv2D(filters=32, kernel_support=5, padding='same_zeros')
         self.prelu3 = layers.PReLU()
-        self.trans_conv2 = layers.Conv2DTranspose(filters=16, kernel_size=5, strides=2, padding='same')
+        self.trans_conv2 = tfc.layers.SignalConv2D(filters=16, kernel_support=5, strides_up=2, padding='same_zeros')
         self.prelu2 = layers.PReLU()
-        self.trans_conv1 = layers.Conv2DTranspose(filters=3, kernel_size=5, strides=2, padding='same')
+        self.trans_conv1 = tfc.layers.SignalConv2D(filters=3, kernel_support=5, strides_up=2, padding='same_zeros')
         self.sigmoid = tf.keras.activations.sigmoid
         
     def __call__(self, outputs):
@@ -77,14 +78,14 @@ class jsccDecoder(layers.Layer):
     
     
     
-class jsccEnd2EndModel(Model):
+class jsccEnd2End_tfc(Model):
     def __init__(self, shape, bw, SNR):
         super().__init__()
         k = np.prod(shape)*bw
         self.noise = sn.utils.ebnodb2no(SNR, num_bits_per_symbol=1, coderate=1)
-        self.encoder = jsccEncoder(k*2/((shape[0]/4)**2), k)
+        self.encoder = jsccEncoder_tfc(k*2/((shape[0]/4)**2), k)
         self.channel = sn.channel.AWGN()
-        self.decoder = jsccDecoder(shape[0]/4)
+        self.decoder = jsccDecoder_tfc(shape[0]/4)
         
     def call(self, x):
         z = self.encoder(x)
