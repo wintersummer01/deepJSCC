@@ -9,8 +9,10 @@ dataset_root = '/workspace/dataset/cifar-10-batches-py'
 train_ds, shape = getTrainDataset(dataset_root)
 
 # Hyperparameters
-SNR_train_dB = [1, 4, 7, 13, 19]
-bandwidth_compression_ratio = [6, 12]
+# SNR_train_dB = [1, 4, 7, 13, 19]
+# bandwidth_compression_ratio = [6, 12]
+SNR_train_dB = [19]
+bandwidth_compression_ratio = [6]
 lr = 1e-3
 num_epoch = 1000
 
